@@ -4,9 +4,9 @@ RUN corepack enable
 
 COPY . ./
 
-RUN pnpm install --no-frozen-lockfile
-RUN pnpm run prisma:generate
-RUN pnpm run build
+RUN pnpm install --no-frozen-lockfile --filter @qode/photo-service...
+RUN pnpm --filter @qode/photo-service run prisma:generate
+RUN pnpm --filter @qode/photo-service run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -15,4 +15,4 @@ RUN corepack enable
 COPY --from=builder /app /app
 
 EXPOSE 4002
-CMD ["pnpm", "run", "start"]
+CMD ["pnpm", "--filter", "@qode/photo-service", "run", "start"]

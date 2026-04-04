@@ -32,16 +32,16 @@
 Deploy two services from this repository in one Railway project:
 
 - `user-service`
-  - Root Directory: `services/user-service`
-  - Dockerfile Path: `Dockerfile`
+  - Root Directory: `.`
+  - Dockerfile Path: `services/user-service/Dockerfile`
   - Internal port: `4001`
 
 - `photo-service`
-  - Root Directory: `services/photo-service`
-  - Dockerfile Path: `Dockerfile`
+  - Root Directory: `.`
+  - Dockerfile Path: `services/photo-service/Dockerfile`
   - Internal port: `4002`
 
-Both service Dockerfiles are self-contained and do not require monorepo root files during build.
+Both service Dockerfiles build from monorepo root context and use pnpm workspace filtering.
 
 Set environment variables in Railway:
 

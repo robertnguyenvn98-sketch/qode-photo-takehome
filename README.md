@@ -137,10 +137,10 @@ Detailed checklist and platform-by-platform setup:
 
 Railway build settings:
 
-- User service: Root Directory `services/user-service` and Dockerfile Path `Dockerfile`
-- Photo service: Root Directory `services/photo-service` and Dockerfile Path `Dockerfile`
+- User service: Root Directory `.` and Dockerfile Path `services/user-service/Dockerfile`
+- Photo service: Root Directory `.` and Dockerfile Path `services/photo-service/Dockerfile`
 
-Both service Dockerfiles are self-contained and do not require monorepo root files during build.
+Both service Dockerfiles build from monorepo root context and use pnpm workspace filtering.
 
 ### Production Configuration Notes
 
