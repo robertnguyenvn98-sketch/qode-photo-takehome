@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
-import { GoogleAuthDto } from './google-auth.dto';
+import { SyncOAuthDto } from './google-auth.dto';
 import { JwtPayload } from './jwt-payload.interface';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async syncGoogleUser(dto: GoogleAuthDto) {
+  async syncOAuthUser(dto: SyncOAuthDto) {
     const user = await this.prisma.user.upsert({
       where: { email: dto.email },
       update: {
@@ -52,13 +52,56 @@ export class AuthService {
 
     return {
       accessToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatarUrl: user.avatarUrl,
-        role: user.role,
+      user: this.normalizeUser(user),
+    };
+  }
+
+  async getCurrentUserProfile(userId: string) {
+    if (!userId) {
+      throw new UnauthorizedException('Missing authenticated user id');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.normalizeUser(user);
+  }
+
+  async getPublicUserProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        avatarUrl: true,
       },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  private normalizeUser(user: {
+    id: string;
+    email: string;
+    name: string | null;
+    avatarUrl: string | null;
+    role: string;
+  }) {
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+      role: user.role,
     };
   }
 }

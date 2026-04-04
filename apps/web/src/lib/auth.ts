@@ -36,7 +36,7 @@ export const authOptions: NextAuthOptions = {
           picture?: string;
         };
 
-        const response = await fetch(`${USER_SERVICE_URL}/internal/auth/google`, {
+        const response = await fetch(`${USER_SERVICE_URL}/internal/users/sync-oauth`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
