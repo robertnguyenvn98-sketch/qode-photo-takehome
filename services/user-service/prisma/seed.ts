@@ -1,6 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient, UserRole } from '@prisma/client';
 import { Pool } from 'pg';
+import { PrismaClient, UserRole } from '../src/generated/prisma';
 
 const pool = new Pool({
   connectionString:

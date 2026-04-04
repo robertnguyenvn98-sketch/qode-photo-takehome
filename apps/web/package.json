@@ -4,7 +4,19 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "lint": "next lint",
+    "lint": "echo \"Lint setup in Step 6\"",
     "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "next": "^16.2.2",
+    "next-auth": "^4.24.13",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.8.2"
   }
 }

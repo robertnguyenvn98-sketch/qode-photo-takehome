@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["photo_domain"]
+}
+
+model Photo {
+  id        String    @id @default(uuid())
+  userId    String
+  publicId  String
+  secureUrl String
+  format    String
+  bytes     Int
+  width     Int
+  height    Int
+  createdAt DateTime  @default(now())
+  comments  Comment[]
+
+  @@index([createdAt(sort: Desc)])
+  @@index([userId])
+  @@map("photos")
+  @@schema("photo_domain")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  photoId   String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  photo     Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@index([photoId, createdAt(sort: Asc)])
+  @@index([userId])
+  @@map("comments")
+  @@schema("photo_domain")
+}
