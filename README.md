@@ -56,6 +56,24 @@ Expected response shape:
 }
 ```
 
+## Prisma Workflow
+
+Each backend service keeps its own Prisma schema and migration history.
+
+Apply migrations locally after the database is up:
+
+```bash
+pnpm --filter @qode/user-service prisma:migrate
+pnpm --filter @qode/photo-service prisma:migrate
+```
+
+Seed minimal local data if you need demo records:
+
+```bash
+pnpm --filter @qode/user-service prisma:seed
+pnpm --filter @qode/photo-service prisma:seed
+```
+
 ## Stop Local Infrastructure
 
 ```bash
