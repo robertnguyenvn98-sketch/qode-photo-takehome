@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
-import { authorizedBackendFetch } from '@/src/lib/backend';
+import {
+  authorizedServiceFetch,
+  requireAuthenticatedSession,
+} from '@/src/lib/backend';
+import { forwardServiceResponse, normalizedErrorResponse } from '@/src/lib/gateway-response';
 
 export async function GET() {
   try {
-    const response = await authorizedBackendFetch('/users/me');
-    const body = await response.json();
-    return NextResponse.json(body, { status: response.status });
-  } catch {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    const session = await requireAuthenticatedSession();
+    const response = await authorizedServiceFetch('user', '/users/me', {}, session);
+    return forwardServiceResponse(response);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return normalizedErrorResponse(401, 'Unauthorized');
+    }
+
+    return normalizedErrorResponse(500, 'Failed to proxy /api/me');
   }
 }
