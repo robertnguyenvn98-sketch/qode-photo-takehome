@@ -41,6 +41,8 @@ Deploy two services from this repository in one Railway project:
   - Dockerfile Path: `Dockerfile`
   - Internal port: `4002`
 
+Both service Dockerfiles are self-contained and do not require monorepo root files during build.
+
 Set environment variables in Railway:
 
 ### user-service env

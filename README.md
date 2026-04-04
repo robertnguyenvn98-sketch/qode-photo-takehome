@@ -135,12 +135,12 @@ Detailed checklist and platform-by-platform setup:
 
 - `docs/deployment-plan.md`
 
-Railway service roots:
+Railway build settings:
 
-- `services/user-service`
-- `services/photo-service`
+- User service: Root Directory `services/user-service` and Dockerfile Path `Dockerfile`
+- Photo service: Root Directory `services/photo-service` and Dockerfile Path `Dockerfile`
 
-Each Railway service should be configured to use its folder as Root Directory and `Dockerfile` as Dockerfile Path.
+Both service Dockerfiles are self-contained and do not require monorepo root files during build.
 
 ### Production Configuration Notes
 
