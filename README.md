@@ -121,6 +121,36 @@ Healthcheck secrets:
 - `USER_SERVICE_HEALTHCHECK_URL`
 - `PHOTO_SERVICE_HEALTHCHECK_URL`
 
+## Production Deployment (Step 14)
+
+Target topology:
+
+- Web: Vercel
+- User service: Render (Docker)
+- Photo service: Render (Docker)
+- PostgreSQL: Neon
+- Media storage: Cloudinary
+
+Detailed checklist and platform-by-platform setup:
+
+- `docs/deployment-plan.md`
+
+Render blueprint:
+
+- `render.yaml`
+
+### Production Configuration Notes
+
+- Set `NEXTAUTH_URL` to your exact Vercel production URL.
+- Add both callback URLs in Google OAuth:
+  - `https://<your-vercel-domain>/api/auth/callback/google`
+  - `http://localhost:3000/api/auth/callback/google`
+- Use a strong shared `INTERNAL_JWT_SECRET` for web, user-service, and photo-service.
+- Lock down `CORS_ORIGINS` in both backend services to your web origin only.
+- Set `USER_SERVICE_URL` and `PHOTO_SERVICE_URL` in web to public Render service URLs.
+- Use Neon pooled connection strings for runtime `DATABASE_URL` values.
+- Enable `prisma:migrate:deploy` in backend startup/release flow before serving traffic.
+
 ## Stop Local Infrastructure
 
 ```bash

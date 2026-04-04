@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: qode-user-service
+    runtime: docker
+    dockerfilePath: ./services/user-service/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "4001"
+      - key: DATABASE_URL
+        sync: false
+      - key: INTERNAL_JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+
+  - type: web
+    name: qode-photo-service
+    runtime: docker
+    dockerfilePath: ./services/photo-service/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "4002"
+      - key: DATABASE_URL
+        sync: false
+      - key: INTERNAL_JWT_SECRET
+        sync: false
+      - key: USER_SERVICE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_UPLOAD_FOLDER
+        value: qode-photo-takehome
