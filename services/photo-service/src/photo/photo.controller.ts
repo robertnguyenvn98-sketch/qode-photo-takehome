@@ -21,9 +21,10 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { PaginationDto } from './dto/pagination.dto';
 import { PhotoService } from './photo.service';
 import { AuthenticatedUser } from './types';
-
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+import {
+  assertSupportedImageMimeType,
+  MAX_FILE_SIZE,
+} from './upload-validation';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -36,10 +37,13 @@ export class PhotoController {
       storage: memoryStorage(),
       limits: { fileSize: MAX_FILE_SIZE },
       fileFilter: (_, file, callback) => {
-        if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-          callback(new BadRequestException('Unsupported file type'), false);
+        try {
+          assertSupportedImageMimeType(file.mimetype);
+        } catch (error) {
+          callback(error as Error, false);
           return;
         }
+
         callback(null, true);
       },
     }),
