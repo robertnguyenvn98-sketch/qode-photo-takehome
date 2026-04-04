@@ -1,0 +1,161 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: qode-photo-takehome
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - name: web
+            context: .
+            dockerfile: apps/web/Dockerfile
+          - name: user-service
+            context: .
+            dockerfile: services/user-service/Dockerfile
+          - name: photo-service
+            context: .
+            dockerfile: services/photo-service/Dockerfile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.name }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:latest
+
+  migrate:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run user-service migration deploy
+        working-directory: services/user-service
+        env:
+          DATABASE_URL: ${{ secrets.USER_SERVICE_DATABASE_URL }}
+        run: pnpm prisma:migrate:deploy
+
+      - name: Run photo-service migration deploy
+        working-directory: services/photo-service
+        env:
+          DATABASE_URL: ${{ secrets.PHOTO_SERVICE_DATABASE_URL }}
+        run: pnpm prisma:migrate:deploy
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: migrate
+    timeout-minutes: 10
+    env:
+      USER_SERVICE_DATABASE_URL: ${{ secrets.USER_SERVICE_DATABASE_URL }}
+      PHOTO_SERVICE_DATABASE_URL: ${{ secrets.PHOTO_SERVICE_DATABASE_URL }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      INTERNAL_JWT_SECRET: ${{ secrets.INTERNAL_JWT_SECRET }}
+      CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+      CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+
+    steps:
+      - name: Trigger web deploy
+        run: |
+          if [ -z "${{ secrets.WEB_DEPLOY_HOOK_URL }}" ]; then
+            echo "WEB_DEPLOY_HOOK_URL is not configured" >&2
+            exit 1
+          fi
+          curl -fsSL -X POST "${{ secrets.WEB_DEPLOY_HOOK_URL }}"
+
+      - name: Trigger user-service deploy
+        run: |
+          if [ -z "${{ secrets.USER_SERVICE_DEPLOY_HOOK_URL }}" ]; then
+            echo "USER_SERVICE_DEPLOY_HOOK_URL is not configured" >&2
+            exit 1
+          fi
+          curl -fsSL -X POST "${{ secrets.USER_SERVICE_DEPLOY_HOOK_URL }}"
+
+      - name: Trigger photo-service deploy
+        run: |
+          if [ -z "${{ secrets.PHOTO_SERVICE_DEPLOY_HOOK_URL }}" ]; then
+            echo "PHOTO_SERVICE_DEPLOY_HOOK_URL is not configured" >&2
+            exit 1
+          fi
+          curl -fsSL -X POST "${{ secrets.PHOTO_SERVICE_DEPLOY_HOOK_URL }}"
+
+  healthcheck:
+    runs-on: ubuntu-latest
+    needs: deploy
+    timeout-minutes: 10
+
+    steps:
+      - name: Check web health
+        run: |
+          if [ -z "${{ secrets.WEB_HEALTHCHECK_URL }}" ]; then
+            echo "WEB_HEALTHCHECK_URL is not configured" >&2
+            exit 1
+          fi
+          curl -fsSL --retry 10 --retry-delay 6 "${{ secrets.WEB_HEALTHCHECK_URL }}"
+
+      - name: Check user-service health
+        run: |
+          if [ -z "${{ secrets.USER_SERVICE_HEALTHCHECK_URL }}" ]; then
+            echo "USER_SERVICE_HEALTHCHECK_URL is not configured" >&2
+            exit 1
+          fi
+          curl -fsSL --retry 10 --retry-delay 6 "${{ secrets.USER_SERVICE_HEALTHCHECK_URL }}"
+
+      - name: Check photo-service health
+        run: |
+          if [ -z "${{ secrets.PHOTO_SERVICE_HEALTHCHECK_URL }}" ]; then
+            echo "PHOTO_SERVICE_HEALTHCHECK_URL is not configured" >&2
+            exit 1
+          fi
+          curl -fsSL --retry 10 --retry-delay 6 "${{ secrets.PHOTO_SERVICE_HEALTHCHECK_URL }}"

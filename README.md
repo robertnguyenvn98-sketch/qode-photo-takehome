@@ -74,6 +74,53 @@ pnpm --filter @qode/user-service prisma:seed
 pnpm --filter @qode/photo-service prisma:seed
 ```
 
+## CI/CD (GitHub Actions)
+
+This repository uses two workflows:
+
+- `CI` on pull requests to `main`
+  - install dependencies
+  - generate Prisma clients
+  - run typecheck
+  - run lint
+  - run tests
+  - build all projects
+
+- `CD` on push to `main`
+  - build and push container images to GHCR for:
+    - web
+    - user-service
+    - photo-service
+  - run Prisma `migrate deploy` for user-service and photo-service
+  - trigger deployment hooks for web and both backend services
+  - run post-deploy health checks
+
+### Required GitHub Secrets
+
+Core secrets:
+
+- `USER_SERVICE_DATABASE_URL`
+- `PHOTO_SERVICE_DATABASE_URL`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `NEXTAUTH_SECRET`
+- `INTERNAL_JWT_SECRET`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+Deployment hook secrets:
+
+- `WEB_DEPLOY_HOOK_URL`
+- `USER_SERVICE_DEPLOY_HOOK_URL`
+- `PHOTO_SERVICE_DEPLOY_HOOK_URL`
+
+Healthcheck secrets:
+
+- `WEB_HEALTHCHECK_URL`
+- `USER_SERVICE_HEALTHCHECK_URL`
+- `PHOTO_SERVICE_HEALTHCHECK_URL`
+
 ## Stop Local Infrastructure
 
 ```bash
