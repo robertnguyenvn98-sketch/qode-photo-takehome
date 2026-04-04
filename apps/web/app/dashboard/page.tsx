@@ -30,6 +30,10 @@ const { Paragraph, Text, Title } = Typography;
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
+function sanitizeForDisplay(value: string) {
+  return value.replace(/[<>]/g, '');
+}
+
 type Profile = {
   id: string;
   email: string;
@@ -315,7 +319,7 @@ export default function DashboardPage() {
                   renderItem={(comment) => (
                     <List.Item key={comment.id}>
                       <Space direction="vertical" size={0}>
-                        <Text>{comment.content}</Text>
+                        <Text>{sanitizeForDisplay(comment.content)}</Text>
                         <Text type="secondary" style={{ fontSize: 12 }}>
                           {new Date(comment.createdAt).toLocaleString()}
                         </Text>

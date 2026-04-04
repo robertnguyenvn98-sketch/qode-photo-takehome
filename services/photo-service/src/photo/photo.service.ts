@@ -8,6 +8,7 @@ import { CloudinaryService } from './cloudinary.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { PaginationDto } from './dto/pagination.dto';
 import { AuthenticatedUser } from './types';
+import { RateLimitService } from './rate-limit.service';
 import { UsersClientService } from './users-client.service';
 
 @Injectable()
@@ -16,9 +17,12 @@ export class PhotoService {
     private readonly prisma: PrismaService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly usersClientService: UsersClientService,
+    private readonly rateLimitService: RateLimitService,
   ) {}
 
   async createPhoto(user: AuthenticatedUser, file: Express.Multer.File) {
+    this.rateLimitService.assertWithinLimit(`photo-upload:${user.sub}`, 20, 60_000);
+
     const uploaded = await this.cloudinaryService.uploadImage(file);
 
     try {
@@ -83,7 +87,7 @@ export class PhotoService {
           name: null,
           avatarUrl: null,
         },
-        latestComments: item.comments,
+        latestComments: item.comments.map((comment) => this.sanitizeCommentOutput(comment)),
       })),
     };
   }
@@ -93,18 +97,22 @@ export class PhotoService {
     photoId: string,
     dto: CreateCommentDto,
   ) {
+    this.rateLimitService.assertWithinLimit(`photo-comment:${user.sub}`, 60, 60_000);
+
     const photo = await this.prisma.photo.findUnique({ where: { id: photoId } });
     if (!photo) {
       throw new NotFoundException('Photo not found');
     }
 
-    return this.prisma.comment.create({
+    const created = await this.prisma.comment.create({
       data: {
         photoId,
         userId: user.sub,
         content: dto.content,
       },
     });
+
+    return this.sanitizeCommentOutput(created);
   }
 
   async listComments(photoId: string, pagination: PaginationDto) {
@@ -128,7 +136,7 @@ export class PhotoService {
       page: pagination.page,
       pageSize: pagination.pageSize,
       total,
-      items,
+      items: items.map((item) => this.sanitizeCommentOutput(item)),
     };
   }
 
@@ -160,5 +168,12 @@ export class PhotoService {
 
     await this.prisma.comment.delete({ where: { id: commentId } });
     return { success: true };
+  }
+
+  private sanitizeCommentOutput<T extends { content: string }>(comment: T): T {
+    return {
+      ...comment,
+      content: comment.content.replace(/[<>]/g, ''),
+    };
   }
 }
