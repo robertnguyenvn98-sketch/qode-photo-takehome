@@ -1,36 +1,28 @@
 'use client';
 
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { Spin } from 'antd';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function HomePage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/dashboard');
+      return;
+    }
+
+    if (status === 'unauthenticated') {
+      router.replace('/login');
+    }
+  }, [router, status]);
 
   return (
-    <main style={{ fontFamily: 'Arial, sans-serif', padding: '48px', maxWidth: '720px' }}>
-      <h1>Qode Photo Takehome</h1>
-      <p>Login with Google, then the gateway will exchange that session for an internal backend JWT.</p>
-
-      {status === 'loading' ? <p>Loading session...</p> : null}
-
-      {!session ? (
-        <button onClick={() => signIn('google')}>Sign in with Google</button>
-      ) : (
-        <>
-          <pre style={{ background: '#f5f5f5', padding: '16px', overflowX: 'auto' }}>
-            {JSON.stringify(
-              {
-                name: session.user?.name,
-                email: session.user?.email,
-                role: session.user?.role,
-                backendAccessToken: session.backendAccessToken ? 'stored' : 'missing',
-              },
-              null,
-              2,
-            )}
-          </pre>
-          <button onClick={() => signOut()}>Sign out</button>
-        </>
-      )}
-    </main>
+    <div className="app-shell" style={{ display: 'grid', placeItems: 'center' }}>
+      <Spin size="large" />
+    </div>
   );
 }
