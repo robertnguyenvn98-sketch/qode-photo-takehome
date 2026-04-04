@@ -22,7 +22,7 @@ export class PhotoService {
     const uploaded = await this.cloudinaryService.uploadImage(file);
 
     try {
-      return await this.prisma.photo.create({
+      const photo = await this.prisma.photo.create({
         data: {
           userId: user.sub,
           publicId: uploaded.publicId,
@@ -33,6 +33,11 @@ export class PhotoService {
           height: uploaded.height,
         },
       });
+
+      return {
+        ...photo,
+        thumbnailUrl: this.cloudinaryService.buildThumbnailUrl(photo.publicId),
+      };
     } catch (error) {
       await this.cloudinaryService.deleteImage(uploaded.publicId);
       throw error;
@@ -72,6 +77,7 @@ export class PhotoService {
       total,
       items: items.map((item) => ({
         ...item,
+        thumbnailUrl: this.cloudinaryService.buildThumbnailUrl(item.publicId),
         uploader: uploaderMap.get(item.userId) ?? {
           id: item.userId,
           name: null,
