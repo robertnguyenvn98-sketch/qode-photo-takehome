@@ -1,10 +1,10 @@
-# Deployment Plan (Vercel + Fly.io + Neon + Cloudinary)
+# Deployment Plan (Vercel + Railway + Neon + Cloudinary)
 
 ## Target Topology
 
 - Web: Vercel (Next.js app)
-- User Service: Fly.io app (Docker)
-- Photo Service: Fly.io app (Docker)
+- User Service: Railway service (Docker)
+- Photo Service: Railway service (Docker)
 - Database: Neon PostgreSQL (single database, separate schemas)
 - Media: Cloudinary
 
@@ -27,21 +27,21 @@
 - `CLOUDINARY_API_SECRET`
 - optional: `CLOUDINARY_UPLOAD_FOLDER` (for example `qode-photo-takehome`)
 
-## 3) Fly.io Services
+## 3) Railway Services
 
-Deploy two apps from this repository:
+Deploy two services from this repository in one Railway project:
 
 - `user-service`
-  - App config: `services/user-service/fly.toml`
-  - Dockerfile path: `services/user-service/Dockerfile`
+  - Root Directory: `services/user-service`
+  - Dockerfile Path: `Dockerfile`
   - Internal port: `4001`
 
 - `photo-service`
-  - App config: `services/photo-service/fly.toml`
-  - Dockerfile path: `services/photo-service/Dockerfile`
+  - Root Directory: `services/photo-service`
+  - Dockerfile Path: `Dockerfile`
   - Internal port: `4002`
 
-Set environment variables in Fly secrets:
+Set environment variables in Railway:
 
 ### user-service env
 
@@ -49,20 +49,18 @@ Set environment variables in Fly secrets:
 - `DATABASE_URL=${USER_SERVICE_DATABASE_URL}`
 - `INTERNAL_JWT_SECRET=<shared-secret>`
 - `CORS_ORIGINS=https://<your-vercel-domain>`
-- optional: `PRIMARY_REGION=<closest-fly-region>`
 
 ### photo-service env
 
 - `PORT=4002`
 - `DATABASE_URL=${PHOTO_SERVICE_DATABASE_URL}`
 - `INTERNAL_JWT_SECRET=<shared-secret>`
-- `USER_SERVICE_URL=https://<user-service-fly-domain>`
+- `USER_SERVICE_URL=https://<user-service-railway-domain>`
 - `CORS_ORIGINS=https://<your-vercel-domain>`
 - `CLOUDINARY_CLOUD_NAME=<value>`
 - `CLOUDINARY_API_KEY=<value>`
 - `CLOUDINARY_API_SECRET=<value>`
 - `CLOUDINARY_UPLOAD_FOLDER=qode-photo-takehome`
-- optional: `PRIMARY_REGION=<closest-fly-region>`
 
 ## 4) Prisma Migrations in Production
 
@@ -85,8 +83,8 @@ Set Vercel environment variables:
 - `NEXTAUTH_SECRET=<secure-random-value>`
 - `GOOGLE_CLIENT_ID=<value>`
 - `GOOGLE_CLIENT_SECRET=<value>`
-- `USER_SERVICE_URL=https://<user-service-fly-domain>`
-- `PHOTO_SERVICE_URL=https://<photo-service-fly-domain>`
+- `USER_SERVICE_URL=https://<user-service-railway-domain>`
+- `PHOTO_SERVICE_URL=https://<photo-service-railway-domain>`
 - `INTERNAL_JWT_SECRET=<shared-secret>`
 
 ## 6) Google OAuth Callback Verification
@@ -100,17 +98,33 @@ In Google Cloud Console OAuth Client settings, add:
 
 Also ensure `NEXTAUTH_URL` exactly matches your deployed Vercel URL.
 
-## 7) Lockdown Checklist
+## 7) CI/CD with Railway Deploy Hooks
+
+In Railway, generate one deploy hook URL for each backend service.
+
+Add these secrets in GitHub Actions:
+
+- `USER_SERVICE_RAILWAY_DEPLOY_HOOK_URL`
+- `PHOTO_SERVICE_RAILWAY_DEPLOY_HOOK_URL`
+
+The CD workflow sequence is:
+
+1. Run Prisma migration deploy for both services.
+2. Trigger Railway deploy hooks for user-service and photo-service.
+3. Trigger web deploy hook.
+4. Run web/backend health checks.
+
+## 8) Lockdown Checklist
 
 - Keep `INTERNAL_JWT_SECRET` identical across web, user-service, photo-service.
 - Restrict `CORS_ORIGINS` on both backend services to only the Vercel domain.
 - Never expose database credentials or Cloudinary secrets in frontend env.
-- Use platform secret managers (Vercel/Fly/GitHub Secrets), not plaintext files.
+- Use platform secret managers (Vercel/Railway/GitHub Secrets), not plaintext files.
 
-## 8) Healthcheck Validation
+## 9) Healthcheck Validation
 
 After deployment:
 
-- `GET https://<user-service-fly-domain>/health`
-- `GET https://<photo-service-fly-domain>/health`
+- `GET https://<user-service-railway-domain>/health`
+- `GET https://<photo-service-railway-domain>/health`
 - `GET https://<your-vercel-domain>/api/me` (with authenticated session)

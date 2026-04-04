@@ -88,7 +88,7 @@ This repository uses two workflows:
 
 - `CD` on push to `main`
   - run Prisma `migrate deploy` for user-service and photo-service
-  - deploy `user-service` and `photo-service` to Fly.io
+  - trigger `user-service` and `photo-service` deploys on Railway
   - trigger the web deploy hook
   - run post-deploy health checks
 
@@ -105,7 +105,11 @@ Core secrets:
 - `CLOUDINARY_CLOUD_NAME`
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
-- `FLY_API_TOKEN`
+
+Railway deploy hook secrets:
+
+- `USER_SERVICE_RAILWAY_DEPLOY_HOOK_URL`
+- `PHOTO_SERVICE_RAILWAY_DEPLOY_HOOK_URL`
 
 Deployment hook secrets:
 
@@ -122,8 +126,8 @@ Healthcheck secrets:
 Target topology:
 
 - Web: Vercel
-- User service: Fly.io (Docker)
-- Photo service: Fly.io (Docker)
+- User service: Railway (Docker)
+- Photo service: Railway (Docker)
 - PostgreSQL: Neon
 - Media storage: Cloudinary
 
@@ -131,10 +135,12 @@ Detailed checklist and platform-by-platform setup:
 
 - `docs/deployment-plan.md`
 
-Fly app configs:
+Railway service roots:
 
-- `services/user-service/fly.toml`
-- `services/photo-service/fly.toml`
+- `services/user-service`
+- `services/photo-service`
+
+Each Railway service should be configured to use its folder as Root Directory and `Dockerfile` as Dockerfile Path.
 
 ### Production Configuration Notes
 
@@ -144,7 +150,7 @@ Fly app configs:
   - `http://localhost:3000/api/auth/callback/google`
 - Use a strong shared `INTERNAL_JWT_SECRET` for web, user-service, and photo-service.
 - Lock down `CORS_ORIGINS` in both backend services to your web origin only.
-- Set `USER_SERVICE_URL` and `PHOTO_SERVICE_URL` in web to public Fly.io app URLs.
+- Set `USER_SERVICE_URL` and `PHOTO_SERVICE_URL` in web to public Railway service URLs.
 - Use Neon pooled connection strings for runtime `DATABASE_URL` values.
 - Enable `prisma:migrate:deploy` in backend startup/release flow before serving traffic.
 
