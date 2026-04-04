@@ -1,0 +1,2 @@
+CREATE SCHEMA IF NOT EXISTS user_domain;
+CREATE SCHEMA IF NOT EXISTS photo_domain;

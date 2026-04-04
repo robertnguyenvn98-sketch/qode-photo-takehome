@@ -1,0 +1,11 @@
+{
+  "name": "qode-photo-takehome",
+  "private": true,
+  "packageManager": "pnpm@10.8.1",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @qode/web --filter @qode/user-service --filter @qode/photo-service dev",
+    "build": "pnpm -r --if-present build",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test"
+  }
+}

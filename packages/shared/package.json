@@ -1,0 +1,10 @@
+{
+  "name": "@qode/shared",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "build": "echo \"Shared package build placeholder\"",
+    "lint": "echo \"Shared package lint placeholder\"",
+    "test": "echo \"Shared package test placeholder\""
+  }
+}
