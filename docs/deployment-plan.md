@@ -1,10 +1,10 @@
-# Deployment Plan (Vercel + Render + Neon + Cloudinary)
+# Deployment Plan (Vercel + Fly.io + Neon + Cloudinary)
 
 ## Target Topology
 
 - Web: Vercel (Next.js app)
-- User Service: Render Web Service (Docker)
-- Photo Service: Render Web Service (Docker)
+- User Service: Fly.io app (Docker)
+- Photo Service: Fly.io app (Docker)
 - Database: Neon PostgreSQL (single database, separate schemas)
 - Media: Cloudinary
 
@@ -27,21 +27,21 @@
 - `CLOUDINARY_API_SECRET`
 - optional: `CLOUDINARY_UPLOAD_FOLDER` (for example `qode-photo-takehome`)
 
-## 3) Render Services
+## 3) Fly.io Services
 
-Deploy two services from this repository:
+Deploy two apps from this repository:
 
 - `user-service`
-  - Root dir: repository root
+  - App config: `services/user-service/fly.toml`
   - Dockerfile path: `services/user-service/Dockerfile`
-  - Internal/external port: `4001`
+  - Internal port: `4001`
 
 - `photo-service`
-  - Root dir: repository root
+  - App config: `services/photo-service/fly.toml`
   - Dockerfile path: `services/photo-service/Dockerfile`
-  - Internal/external port: `4002`
+  - Internal port: `4002`
 
-Set environment variables on Render:
+Set environment variables in Fly secrets:
 
 ### user-service env
 
@@ -49,18 +49,20 @@ Set environment variables on Render:
 - `DATABASE_URL=${USER_SERVICE_DATABASE_URL}`
 - `INTERNAL_JWT_SECRET=<shared-secret>`
 - `CORS_ORIGINS=https://<your-vercel-domain>`
+- optional: `PRIMARY_REGION=<closest-fly-region>`
 
 ### photo-service env
 
 - `PORT=4002`
 - `DATABASE_URL=${PHOTO_SERVICE_DATABASE_URL}`
 - `INTERNAL_JWT_SECRET=<shared-secret>`
-- `USER_SERVICE_URL=https://<user-service-render-domain>`
+- `USER_SERVICE_URL=https://<user-service-fly-domain>`
 - `CORS_ORIGINS=https://<your-vercel-domain>`
 - `CLOUDINARY_CLOUD_NAME=<value>`
 - `CLOUDINARY_API_KEY=<value>`
 - `CLOUDINARY_API_SECRET=<value>`
 - `CLOUDINARY_UPLOAD_FOLDER=qode-photo-takehome`
+- optional: `PRIMARY_REGION=<closest-fly-region>`
 
 ## 4) Prisma Migrations in Production
 
@@ -71,7 +73,7 @@ pnpm --filter @qode/user-service prisma:migrate:deploy
 pnpm --filter @qode/photo-service prisma:migrate:deploy
 ```
 
-In GitHub Actions CD this is already automated in `.github/workflows/cd.yml`.
+In GitHub Actions CD this is automated in `.github/workflows/cd.yml`.
 
 ## 5) Vercel Web Deployment
 
@@ -83,8 +85,8 @@ Set Vercel environment variables:
 - `NEXTAUTH_SECRET=<secure-random-value>`
 - `GOOGLE_CLIENT_ID=<value>`
 - `GOOGLE_CLIENT_SECRET=<value>`
-- `USER_SERVICE_URL=https://<user-service-render-domain>`
-- `PHOTO_SERVICE_URL=https://<photo-service-render-domain>`
+- `USER_SERVICE_URL=https://<user-service-fly-domain>`
+- `PHOTO_SERVICE_URL=https://<photo-service-fly-domain>`
 - `INTERNAL_JWT_SECRET=<shared-secret>`
 
 ## 6) Google OAuth Callback Verification
@@ -103,12 +105,12 @@ Also ensure `NEXTAUTH_URL` exactly matches your deployed Vercel URL.
 - Keep `INTERNAL_JWT_SECRET` identical across web, user-service, photo-service.
 - Restrict `CORS_ORIGINS` on both backend services to only the Vercel domain.
 - Never expose database credentials or Cloudinary secrets in frontend env.
-- Use platform secret managers (Vercel/Render/GitHub Secrets), not plaintext files.
+- Use platform secret managers (Vercel/Fly/GitHub Secrets), not plaintext files.
 
 ## 8) Healthcheck Validation
 
 After deployment:
 
-- `GET https://<user-service-render-domain>/health`
-- `GET https://<photo-service-render-domain>/health`
+- `GET https://<user-service-fly-domain>/health`
+- `GET https://<photo-service-fly-domain>/health`
 - `GET https://<your-vercel-domain>/api/me` (with authenticated session)

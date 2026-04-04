@@ -87,12 +87,9 @@ This repository uses two workflows:
   - build all projects
 
 - `CD` on push to `main`
-  - build and push container images to GHCR for:
-    - web
-    - user-service
-    - photo-service
   - run Prisma `migrate deploy` for user-service and photo-service
-  - trigger deployment hooks for web and both backend services
+  - deploy `user-service` and `photo-service` to Fly.io
+  - trigger the web deploy hook
   - run post-deploy health checks
 
 ### Required GitHub Secrets
@@ -108,12 +105,11 @@ Core secrets:
 - `CLOUDINARY_CLOUD_NAME`
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
+- `FLY_API_TOKEN`
 
 Deployment hook secrets:
 
 - `WEB_DEPLOY_HOOK_URL`
-- `USER_SERVICE_DEPLOY_HOOK_URL`
-- `PHOTO_SERVICE_DEPLOY_HOOK_URL`
 
 Healthcheck secrets:
 
@@ -126,8 +122,8 @@ Healthcheck secrets:
 Target topology:
 
 - Web: Vercel
-- User service: Render (Docker)
-- Photo service: Render (Docker)
+- User service: Fly.io (Docker)
+- Photo service: Fly.io (Docker)
 - PostgreSQL: Neon
 - Media storage: Cloudinary
 
@@ -135,9 +131,10 @@ Detailed checklist and platform-by-platform setup:
 
 - `docs/deployment-plan.md`
 
-Render blueprint:
+Fly app configs:
 
-- `render.yaml`
+- `services/user-service/fly.toml`
+- `services/photo-service/fly.toml`
 
 ### Production Configuration Notes
 
@@ -147,7 +144,7 @@ Render blueprint:
   - `http://localhost:3000/api/auth/callback/google`
 - Use a strong shared `INTERNAL_JWT_SECRET` for web, user-service, and photo-service.
 - Lock down `CORS_ORIGINS` in both backend services to your web origin only.
-- Set `USER_SERVICE_URL` and `PHOTO_SERVICE_URL` in web to public Render service URLs.
+- Set `USER_SERVICE_URL` and `PHOTO_SERVICE_URL` in web to public Fly.io app URLs.
 - Use Neon pooled connection strings for runtime `DATABASE_URL` values.
 - Enable `prisma:migrate:deploy` in backend startup/release flow before serving traffic.
 

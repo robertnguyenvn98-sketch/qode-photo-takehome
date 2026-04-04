@@ -8,56 +8,13 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_PREFIX: qode-photo-takehome
+  FLYCTL_VERSION: 0.3.133
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      matrix:
-        include:
-          - name: web
-            context: .
-            dockerfile: apps/web/Dockerfile
-          - name: user-service
-            context: .
-            dockerfile: services/user-service/Dockerfile
-          - name: photo-service
-            context: .
-            dockerfile: services/photo-service/Dockerfile
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push ${{ matrix.name }} image
-        uses: docker/build-push-action@v6
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:latest
-
   migrate:
     runs-on: ubuntu-latest
-    needs: build-and-push
     timeout-minutes: 15
 
     steps:
@@ -90,20 +47,40 @@ jobs:
           DATABASE_URL: ${{ secrets.PHOTO_SERVICE_DATABASE_URL }}
         run: pnpm prisma:migrate:deploy
 
-  deploy:
+  deploy-fly:
     runs-on: ubuntu-latest
     needs: migrate
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - name: user-service
+            app: qode-user-service
+            workdir: services/user-service
+          - name: photo-service
+            app: qode-photo-service
+            workdir: services/photo-service
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+        with:
+          version: ${{ env.FLYCTL_VERSION }}
+
+      - name: Deploy ${{ matrix.name }} to Fly.io
+        working-directory: ${{ matrix.workdir }}
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl deploy --remote-only --app ${{ matrix.app }}
+
+  deploy-web:
+    runs-on: ubuntu-latest
+    needs: deploy-fly
     timeout-minutes: 10
-    env:
-      USER_SERVICE_DATABASE_URL: ${{ secrets.USER_SERVICE_DATABASE_URL }}
-      PHOTO_SERVICE_DATABASE_URL: ${{ secrets.PHOTO_SERVICE_DATABASE_URL }}
-      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-      INTERNAL_JWT_SECRET: ${{ secrets.INTERNAL_JWT_SECRET }}
-      CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-      CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
 
     steps:
       - name: Trigger web deploy
@@ -114,25 +91,9 @@ jobs:
           fi
           curl -fsSL -X POST "${{ secrets.WEB_DEPLOY_HOOK_URL }}"
 
-      - name: Trigger user-service deploy
-        run: |
-          if [ -z "${{ secrets.USER_SERVICE_DEPLOY_HOOK_URL }}" ]; then
-            echo "USER_SERVICE_DEPLOY_HOOK_URL is not configured" >&2
-            exit 1
-          fi
-          curl -fsSL -X POST "${{ secrets.USER_SERVICE_DEPLOY_HOOK_URL }}"
-
-      - name: Trigger photo-service deploy
-        run: |
-          if [ -z "${{ secrets.PHOTO_SERVICE_DEPLOY_HOOK_URL }}" ]; then
-            echo "PHOTO_SERVICE_DEPLOY_HOOK_URL is not configured" >&2
-            exit 1
-          fi
-          curl -fsSL -X POST "${{ secrets.PHOTO_SERVICE_DEPLOY_HOOK_URL }}"
-
   healthcheck:
     runs-on: ubuntu-latest
-    needs: deploy
+    needs: deploy-web
     timeout-minutes: 10
 
     steps:
