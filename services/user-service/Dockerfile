@@ -15,4 +15,4 @@ RUN corepack enable
 COPY --from=builder /app /app
 
 EXPOSE 4001
-CMD ["node", "dist/main.js"]
+ENTRYPOINT ["node", "dist/main.js"]
