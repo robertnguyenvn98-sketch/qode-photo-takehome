@@ -9,10 +9,10 @@ RUN pnpm --filter @qode/photo-service run prisma:generate
 RUN pnpm --filter @qode/photo-service run build
 
 FROM node:20-alpine AS runner
-WORKDIR /app
+WORKDIR /app/services/photo-service
 RUN corepack enable
 
 COPY --from=builder /app /app
 
 EXPOSE 4002
-CMD ["pnpm", "--filter", "@qode/photo-service", "run", "start"]
+CMD ["node", "dist/main.js"]
