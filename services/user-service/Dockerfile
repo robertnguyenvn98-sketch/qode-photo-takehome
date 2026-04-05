@@ -7,6 +7,8 @@ COPY . ./
 RUN pnpm install --no-frozen-lockfile --filter @qode/user-service...
 RUN pnpm --filter @qode/user-service run prisma:generate
 RUN pnpm --filter @qode/user-service run build
+RUN mkdir -p services/user-service/dist/generated \
+	&& cp -R services/user-service/src/generated/prisma services/user-service/dist/generated/
 
 FROM node:20-alpine AS runner
 WORKDIR /app/services/user-service
