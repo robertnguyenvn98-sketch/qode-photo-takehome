@@ -18,3 +18,4 @@ COPY --from=builder /app /app
 
 EXPOSE 4001
 ENTRYPOINT ["node", "dist/main.js"]
+
