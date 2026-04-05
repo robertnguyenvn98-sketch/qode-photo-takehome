@@ -16,18 +16,51 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.8.1
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
-          cache: pnpm
+          node-version: 22
+
+      - name: Enable pnpm with Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.8.1 --activate
+          pnpm --version
+
+      - name: Validate migration secrets
+        env:
+          USER_SERVICE_DATABASE_URL: ${{ secrets.USER_SERVICE_DATABASE_URL }}
+          PHOTO_SERVICE_DATABASE_URL: ${{ secrets.PHOTO_SERVICE_DATABASE_URL }}
+        run: |
+          set -eu
+
+          if [ -z "$USER_SERVICE_DATABASE_URL" ]; then
+            echo "USER_SERVICE_DATABASE_URL is not configured" >&2
+            exit 1
+          fi
+
+          if [ -z "$PHOTO_SERVICE_DATABASE_URL" ]; then
+            echo "PHOTO_SERVICE_DATABASE_URL is not configured" >&2
+            exit 1
+          fi
+
+          case "$USER_SERVICE_DATABASE_URL" in
+            *schema=user_domain*) ;;
+            *)
+              echo "USER_SERVICE_DATABASE_URL must include schema=user_domain" >&2
+              exit 1
+              ;;
+          esac
+
+          case "$PHOTO_SERVICE_DATABASE_URL" in
+            *schema=photo_domain*) ;;
+            *)
+              echo "PHOTO_SERVICE_DATABASE_URL must include schema=photo_domain" >&2
+              exit 1
+              ;;
+          esac
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
