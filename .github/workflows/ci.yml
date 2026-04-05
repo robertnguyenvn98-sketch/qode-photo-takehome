@@ -21,11 +21,13 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
 
       - name: Enable pnpm with Corepack
         run: |
           corepack enable
           corepack prepare pnpm@10.8.1 --activate
+          command -v pnpm
           pnpm --version
 
       - name: Install dependencies
