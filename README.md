@@ -2,6 +2,13 @@
 
 Local development infrastructure for a Next.js web app and two Nest services.
 
+## Documentation Index
+
+- Full architecture, stack decisions, local setup, deployment runbook, and system flow:
+  - [docs/architecture-techstack-setup-flow.md](docs/architecture-techstack-setup-flow.md)
+- Production deployment checklist and environment matrix:
+  - [docs/deployment-plan.md](docs/deployment-plan.md)
+
 ## Services and Ports
 
 - Web (Next.js): `3000`
