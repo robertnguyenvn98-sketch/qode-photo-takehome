@@ -87,68 +87,68 @@ jobs:
           DATABASE_URL: ${{ steps.prepare-db-urls.outputs.photo_db_url }}
         run: pnpm prisma:migrate:deploy
 
-  deploy-railway:
-    runs-on: ubuntu-latest
-    needs: migrate
-    timeout-minutes: 15
+  # deploy-railway:
+  #   runs-on: ubuntu-latest
+  #   needs: migrate
+  #   timeout-minutes: 15
 
-    steps:
-      - name: Trigger user-service deploy on Railway
-        run: |
-          if [ -z "${{ secrets.USER_SERVICE_RAILWAY_DEPLOY_HOOK_URL }}" ]; then
-            echo "USER_SERVICE_RAILWAY_DEPLOY_HOOK_URL is not configured" >&2
-            exit 1
-          fi
-          curl -fsSL -X POST "${{ secrets.USER_SERVICE_RAILWAY_DEPLOY_HOOK_URL }}"
+  #   steps:
+  #     - name: Trigger user-service deploy on Railway
+  #       run: |
+  #         if [ -z "${{ secrets.USER_SERVICE_RAILWAY_DEPLOY_HOOK_URL }}" ]; then
+  #           echo "USER_SERVICE_RAILWAY_DEPLOY_HOOK_URL is not configured" >&2
+  #           exit 1
+  #         fi
+  #         curl -fsSL -X POST "${{ secrets.USER_SERVICE_RAILWAY_DEPLOY_HOOK_URL }}"
 
-      - name: Trigger photo-service deploy on Railway
-        run: |
-          if [ -z "${{ secrets.PHOTO_SERVICE_RAILWAY_DEPLOY_HOOK_URL }}" ]; then
-            echo "PHOTO_SERVICE_RAILWAY_DEPLOY_HOOK_URL is not configured" >&2
-            exit 1
-          fi
-          curl -fsSL -X POST "${{ secrets.PHOTO_SERVICE_RAILWAY_DEPLOY_HOOK_URL }}"
+  #     - name: Trigger photo-service deploy on Railway
+  #       run: |
+  #         if [ -z "${{ secrets.PHOTO_SERVICE_RAILWAY_DEPLOY_HOOK_URL }}" ]; then
+  #           echo "PHOTO_SERVICE_RAILWAY_DEPLOY_HOOK_URL is not configured" >&2
+  #           exit 1
+  #         fi
+  #         curl -fsSL -X POST "${{ secrets.PHOTO_SERVICE_RAILWAY_DEPLOY_HOOK_URL }}"
 
-  deploy-web:
-    runs-on: ubuntu-latest
-    needs: deploy-railway
-    timeout-minutes: 10
+  # deploy-web:
+  #   runs-on: ubuntu-latest
+  #   needs: deploy-railway
+  #   timeout-minutes: 10
 
-    steps:
-      - name: Trigger web deploy
-        run: |
-          if [ -z "${{ secrets.WEB_DEPLOY_HOOK_URL }}" ]; then
-            echo "WEB_DEPLOY_HOOK_URL is not configured" >&2
-            exit 1
-          fi
-          curl -fsSL -X POST "${{ secrets.WEB_DEPLOY_HOOK_URL }}"
+  #   steps:
+  #     - name: Trigger web deploy
+  #       run: |
+  #         if [ -z "${{ secrets.WEB_DEPLOY_HOOK_URL }}" ]; then
+  #           echo "WEB_DEPLOY_HOOK_URL is not configured" >&2
+  #           exit 1
+  #         fi
+  #         curl -fsSL -X POST "${{ secrets.WEB_DEPLOY_HOOK_URL }}"
 
-  healthcheck:
-    runs-on: ubuntu-latest
-    needs: deploy-web
-    timeout-minutes: 10
+  # healthcheck:
+  #   runs-on: ubuntu-latest
+  #   needs: deploy-web
+  #   timeout-minutes: 10
 
-    steps:
-      - name: Check web health
-        run: |
-          if [ -z "${{ secrets.WEB_HEALTHCHECK_URL }}" ]; then
-            echo "WEB_HEALTHCHECK_URL is not configured" >&2
-            exit 1
-          fi
-          curl -fsSL --retry 10 --retry-delay 6 "${{ secrets.WEB_HEALTHCHECK_URL }}"
+  #   steps:
+  #     - name: Check web health
+  #       run: |
+  #         if [ -z "${{ secrets.WEB_HEALTHCHECK_URL }}" ]; then
+  #           echo "WEB_HEALTHCHECK_URL is not configured" >&2
+  #           exit 1
+  #         fi
+  #         curl -fsSL --retry 10 --retry-delay 6 "${{ secrets.WEB_HEALTHCHECK_URL }}"
 
-      - name: Check user-service health
-        run: |
-          if [ -z "${{ secrets.USER_SERVICE_HEALTHCHECK_URL }}" ]; then
-            echo "USER_SERVICE_HEALTHCHECK_URL is not configured" >&2
-            exit 1
-          fi
-          curl -fsSL --retry 10 --retry-delay 6 "${{ secrets.USER_SERVICE_HEALTHCHECK_URL }}"
+  #     - name: Check user-service health
+  #       run: |
+  #         if [ -z "${{ secrets.USER_SERVICE_HEALTHCHECK_URL }}" ]; then
+  #           echo "USER_SERVICE_HEALTHCHECK_URL is not configured" >&2
+  #           exit 1
+  #         fi
+  #         curl -fsSL --retry 10 --retry-delay 6 "${{ secrets.USER_SERVICE_HEALTHCHECK_URL }}"
 
-      - name: Check photo-service health
-        run: |
-          if [ -z "${{ secrets.PHOTO_SERVICE_HEALTHCHECK_URL }}" ]; then
-            echo "PHOTO_SERVICE_HEALTHCHECK_URL is not configured" >&2
-            exit 1
-          fi
-          curl -fsSL --retry 10 --retry-delay 6 "${{ secrets.PHOTO_SERVICE_HEALTHCHECK_URL }}"
+  #     - name: Check photo-service health
+  #       run: |
+  #         if [ -z "${{ secrets.PHOTO_SERVICE_HEALTHCHECK_URL }}" ]; then
+  #           echo "PHOTO_SERVICE_HEALTHCHECK_URL is not configured" >&2
+  #           exit 1
+  #         fi
+  #         curl -fsSL --retry 10 --retry-delay 6 "${{ secrets.PHOTO_SERVICE_HEALTHCHECK_URL }}"
