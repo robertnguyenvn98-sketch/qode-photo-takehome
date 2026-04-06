@@ -31,12 +31,30 @@ jobs:
           command -v pnpm
           pnpm --version
 
-      - name: Validate migration secrets
+      - name: Prepare migration database URLs
+        id: prepare-db-urls
         env:
           USER_SERVICE_DATABASE_URL: ${{ secrets.USER_SERVICE_DATABASE_URL }}
           PHOTO_SERVICE_DATABASE_URL: ${{ secrets.PHOTO_SERVICE_DATABASE_URL }}
         run: |
           set -eu
+
+          add_schema_if_missing() {
+            url="$1"
+            schema="$2"
+
+            case "$url" in
+              *"schema="*)
+                printf '%s\n' "$url"
+                ;;
+              *"?"*)
+                printf '%s&schema=%s\n' "$url" "$schema"
+                ;;
+              *)
+                printf '%s?schema=%s\n' "$url" "$schema"
+                ;;
+            esac
+          }
 
           if [ -z "$USER_SERVICE_DATABASE_URL" ]; then
             echo "USER_SERVICE_DATABASE_URL is not configured" >&2
@@ -48,21 +66,11 @@ jobs:
             exit 1
           fi
 
-          case "$USER_SERVICE_DATABASE_URL" in
-            *schema=user_domain*) ;;
-            *)
-              echo "USER_SERVICE_DATABASE_URL must include schema=user_domain" >&2
-              exit 1
-              ;;
-          esac
+          USER_DB_URL="$(add_schema_if_missing "$USER_SERVICE_DATABASE_URL" "user_domain")"
+          PHOTO_DB_URL="$(add_schema_if_missing "$PHOTO_SERVICE_DATABASE_URL" "photo_domain")"
 
-          case "$PHOTO_SERVICE_DATABASE_URL" in
-            *schema=photo_domain*) ;;
-            *)
-              echo "PHOTO_SERVICE_DATABASE_URL must include schema=photo_domain" >&2
-              exit 1
-              ;;
-          esac
+          echo "user_db_url=$USER_DB_URL" >> "$GITHUB_OUTPUT"
+          echo "photo_db_url=$PHOTO_DB_URL" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -70,13 +78,13 @@ jobs:
       - name: Run user-service migration deploy
         working-directory: services/user-service
         env:
-          DATABASE_URL: ${{ secrets.USER_SERVICE_DATABASE_URL }}
+          DATABASE_URL: ${{ steps.prepare-db-urls.outputs.user_db_url }}
         run: pnpm prisma:migrate:deploy
 
       - name: Run photo-service migration deploy
         working-directory: services/photo-service
         env:
-          DATABASE_URL: ${{ secrets.PHOTO_SERVICE_DATABASE_URL }}
+          DATABASE_URL: ${{ steps.prepare-db-urls.outputs.photo_db_url }}
         run: pnpm prisma:migrate:deploy
 
   deploy-railway:
